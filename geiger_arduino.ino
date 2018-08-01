@@ -1,4 +1,4 @@
-#include <Wire.h> 
+#include <Wire.h>
 #include <LiquidCrystal_I2C.h>
 
 #define CONVERT_PULSE 0.00812037037037 // Конвертация (Щелчков в Минуту) в МикроЗиверты/час
@@ -14,78 +14,199 @@ long time_previous_measure = 0;
 long time = 0;
 long count_previous = 0;
 double rad_value = 0.0;
+bool is_initialized = false;
+
+int select_rad = 0; // 0 - Зиверты, 1 - Ренгены, 2 - Рад, 3 - Бэр, 4 - Кюри, 5 - CPM для дебуга
+int select_power = 0; // 0 - микро, 1 - милли, 2 - без, / в час
 
 
-LiquidCrystal_I2C lcd(0x27,16,2);  // Устанавливаем дисплей
+LiquidCrystal_I2C lcd(0x27, 16, 2); // Устанавливаем дисплей
 
 
-void setup() 
+void setup()
 {
   pinMode(LED_BUILTIN, OUTPUT);
-  attachInterrupt(digitalPinToInterrupt(2), Counter, RISING); // Прерывания для считывания пульсов трубки Гейгера-Мюллера
+  interrupts();
+  attachInterrupt(digitalPinToInterrupt(2), Counter, FALLING); // Прерывания для считывания пульсов трубки Гейгера-Мюллера
 
   Serial.begin(9600); // Вывод в ПК по COM интерфейсу // Debug
-  
+
   lcd.init(); // инициализация LCD
   lcd.backlight(); // включаем подсветку
   lcd.clear(); // очистка дисплея
 
-  lcd.setCursor(1,0);
+  lcd.setCursor(1, 0);
   lcd.print("S.T.A.L.K.E.R.");
-  lcd.setCursor(6,1);
+  lcd.setCursor(6, 1);
   lcd.print("KIT");
-
+  select_rad = 1;
+  select_power = 0;
 }
 
-void loop() 
+void loop()
 {
-  //lcd.setCursor(2, 0); // устанавливаем курсор на 0 строку, 3 символ
-  //lcd.print("CPM"); // вывод надписи
-  //lcd.setCursor(1, 1); // устанавливаем курсор на 1 строку, 1 символ
-  //lcd.print(millis()/1000); // задержка
-  Show_CPM_uSv();
+  //if(!is_initialized) BootAnimation();
+  Show_Radiation();
 }
 
-void Show_CPM_uSv()
+void Show_Radiation()
 {
-  if(millis()-time_previous_measure > TIME_PERIOD)
+  if (millis() - time_previous_measure > TIME_PERIOD)
   {
-    //float elapsed_millis = millis();
-    //int elapsed_sec = round((elapsed_millis)/1000);
-    count_per_minute = 6*count;
-    //count_per_minute = count;
+    //digitalWrite(LED_BUILTIN, HIGH);
+    count_per_minute = 6 * count;
     count = 0;
-    rad_value = count_per_minute * CONVERT_PULSE;
+
+    rad_value = count_per_minute * CONVERT_PULSE; // по-умолчанию в микро-Зивертах
     time_previous_measure = millis();
-    //debug zone
-    //Serial.print("CPM = ");
-    //Serial.print(count_per_minute, DEC);
-    //Serial.print("    ");
-    //Serial.print("uSv/h = ");
-    //Serial.println(rad_value, 4);
-    //end debug zone
-    lcd.clear();
-    lcd.setCursor(0,0);
-    lcd.print("CPM = ");
-    lcd.setCursor(6,0);
-    lcd.print(count_per_minute);
-    lcd.setCursor(0,1);
-    lcd.print(rad_value, 4);
-    lcd.setCursor(6,1);
-    lcd.print(" uSv/h");
-    //count = 0;
-    //delay(3000);
     
-    
+    switch (select_rad)
+    {
+      case 0: // начало Зиверт
+
+        lcd.clear();
+        lcd.setCursor(0, 0);
+        lcd.print("RADmeter mode ");
+
+        lcd.setCursor(0, 1);
+        switch (select_power)
+        {
+          case 0:
+
+            lcd.print(rad_value, 4);
+            lcd.setCursor(6, 1);
+            lcd.print(" uSv/h");
+            break;
+
+          case 1:
+
+            lcd.print(rad_value * 0.001, 5);
+            lcd.setCursor(7, 1);
+            lcd.print(" mSv/h");
+            break;
+
+          case 2:
+
+            lcd.print(rad_value * 0.000001, 7);
+            lcd.setCursor(9, 1);
+            lcd.print(" Sv/h");
+            break;
+        }
+        break;
+      // конец Зиверт
+      case 1: // начало Рентген
+
+        lcd.clear();
+        lcd.setCursor(0, 0);
+        lcd.print("RADmeter mode ");
+
+        lcd.setCursor(0, 1);
+        switch (select_power)
+        {
+          case 0:
+
+            lcd.print(rad_value * 100, 4);
+            lcd.setCursor(6, 1);
+            lcd.print(" uRn/h");
+            break;
+
+          case 1:
+
+            lcd.print(rad_value * 0.1, 4);
+            lcd.setCursor(6, 1);
+            lcd.print(" mRn/h");
+            break;
+
+          case 2:
+
+            lcd.print(rad_value * 0.0001, 5);
+            lcd.setCursor(7, 1);
+            lcd.print(" Rn/h");
+            break;
+        }
+        break;
+      // конец Рентген
+
+    }
+  //digitalWrite(LED_BUILTIN, LOW);
   }
 }
 
 void Counter()
 {
-  //digitalWrite(LED_BUILTIN, HIGH);
-  //delay(100);
-  //digitalWrite(LED_BUILTIN, LOW);
   ++count;
 }
+
+void BootAnimation()
+{
+  delay(1000);
+  lcd.clear();
+  lcd.setCursor(0, 0);
+  lcd.print("-");
+  delay(400);
+  lcd.print("--");
+  delay(400);
+  lcd.print("---");
+  delay(400);
+  lcd.print("----");
+  delay(400);
+  lcd.print("-----");
+  delay(400);
+  lcd.print("------");
+  delay(400);
+  lcd.print("-------");
+  delay(400);
+  lcd.print("--------");
+  delay(400);
+  lcd.print("---------");
+  delay(400);
+  lcd.print("----------");
+  delay(400);
+  lcd.print("-----------");
+  delay(400);
+  lcd.print("------------");
+  delay(400);
+  lcd.print("-------------");
+  delay(400);
+  lcd.print("--------------");
+  delay(400);
+  lcd.print("---------------");
+  delay(400);
+  lcd.print("----------------");
+  lcd.setCursor(1, 0);
+  lcd.print("-");
+  delay(400);
+  lcd.print("--");
+  delay(400);
+  lcd.print("---");
+  delay(4001);
+  lcd.print("----");
+  delay(400);
+  lcd.print("-----");
+  delay(400);
+  lcd.print("------");
+  delay(400);
+  lcd.print("-------");
+  delay(400);
+  lcd.print("--------");
+  delay(400);
+  lcd.print("---------");
+  delay(400);
+  lcd.print("----------");
+  delay(400);
+  lcd.print("-----------");
+  delay(400);
+  lcd.print("------------");
+  delay(400);
+  lcd.print("-------------");
+  delay(400);
+  lcd.print("--------------");
+  delay(400);
+  lcd.print("---------------");
+  delay(400);
+  lcd.print("----------------");
+  is_initialized = true;
+}
+
 
 

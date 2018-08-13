@@ -8,7 +8,7 @@
 #define TIME_PERIOD 10000
 #define LOG_PERIOD 20000 //Logging period in milliseconds
 #define MINUTE_PERIOD 60000
-#define SENSITIVITY 5
+#define SENSITIVITY 10
 
 int service_pin = 13; // сервисный индикатор с платы
 int geiger_input = 2; // вход с платы Счетчика Гейгера
@@ -69,19 +69,23 @@ void loop()
 
 void Show_Radiation()
 {
-  if ((millis() * 0.355 - time_previous_measure) > 2000*0.355)
+  if(count==0) return;
+  if ((millis() * 0.355 - time_previous_measure) > 2000 * 0.355)
   {
-    if(checker > SENSITIVITY)
-    {
-      checker=0;
-      common_counter=0;
-    }
-    common_counter+=count;
-    checker++;
+    //if (count != 0 && checker > 0)
+    //{
+      if (checker > SENSITIVITY)
+      {
+        checker = 0;
+        common_counter = 0;
+      }
+    //} else if (checker > 1) checker--;
+    common_counter += count;
+    ++checker;
     count_per_minute = (common_counter / checker) * 30;
     //count_per_minute = 30 * count;
     //count_per_minute = count * time_previous_measure / 1000;
-    count = 0;
+    //count = 0;
 
     rad_value = count_per_minute * CONVERT_PULSE; // по-умолчанию в микро-Зивертах
     time_previous_measure = millis() * 0.355;
@@ -155,6 +159,7 @@ void Show_Radiation()
 
     }
     //digitalWrite(LED_BUILTIN, LOW);
+    count = 0;
   }
 }
 
@@ -171,7 +176,7 @@ void Counter()
 void RadPerMinute()
 {
   if (millis() * 0.35 - timer < 21330) return;
-      count_per_minute = 6 * count;
+  count_per_minute = 6 * count;
 
   count = 0;
 

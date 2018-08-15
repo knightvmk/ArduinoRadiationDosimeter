@@ -2,10 +2,10 @@
 Repository for Geiger counter and Radiation dosimeter for Arduino plate
 
 # Working features:
-* Radiometer mode;
+* #Radiometer mode;
 - Roentgen,
 - Sievert.
-* Dosimeter mode;
+* #Dosimeter mode;
 - Roentgen per "millis()",
 - Sievert per "millis()".
 

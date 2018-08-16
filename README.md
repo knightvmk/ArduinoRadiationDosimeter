@@ -15,19 +15,19 @@ Update screen data at 2 secs
 
 **Connection PINs**
 
-* Arduino:
-*Digital pins*:
-2  - Input for interrupts from Geiger plate,
+**Arduino:**
+* Digital pins:
+1. 2  Input for interrupts from Geiger plate,
 
-*Analog pins*:
-A0 - pin for button change power of measure,
-A1 - pin for button change measure,
-A2 - pin for button change mode (Radiomenter / Dosimeter),
+* Analog pins:
+1. A0  pin for button change power of measure,
+2. A1  pin for button change measure,
+3. A2  pin for button change mode (Radiomenter / Dosimeter),
 
-A4 - pins for i2c display **LCD1602 (LiquidCrystal_I2C)**,
-A5 - ==//==.
+4. A4  pins for i2c display **LCD1602 (LiquidCrystal_I2C)**,
+5. A5  ==//==.
 
-* Geiger plate
-GND
-5V
-VIN - connect to diginal pin "2" from Arduiono plate
+**Geiger plate**
+1. GND
+2. 5V
+3. VIN  connect to diginal pin "2" from Arduiono plate

@@ -9,7 +9,7 @@ Repository for Geiger counter and Radiation dosimeter for Arduino plate
 + Roentgen per _"millis()"_,
 + Sievert per _"millis()"_.
 
-Update screen data at 2 secs
+Update screen data at 5 secs
 
 ## FAQ
 

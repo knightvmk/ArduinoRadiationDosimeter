@@ -20,7 +20,7 @@ Update screen data at 5 secs
 **Arduino:**
 * Digital pins:
 1. **2** - Input for interrupts from Geiger plate,
-2. **5** - Sound buzzer pin.
+2. **11** - Sound buzzer pin.
 
 * Analog pins:
 1. **A0** - pin for button change power of measure,

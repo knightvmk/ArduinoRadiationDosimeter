@@ -31,3 +31,10 @@ Update screen data at 5 secs
 1. GND
 2. 5V
 3. VIN  connect to diginal pin "2" from Arduiono plate
+
+
+
+
+
+Last update the Readme at 16.08.2018
+'tags: Arduino, C++, Geiger, Radiation, Counter, Dosimeter'

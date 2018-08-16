@@ -35,6 +35,7 @@ Update screen data at 5 secs
 
 
 
-
+---
 Last update the Readme at 16.08.2018
+
 'tags: Arduino, C++, Geiger, Radiation, Counter, Dosimeter'

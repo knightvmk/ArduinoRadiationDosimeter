@@ -17,7 +17,8 @@
 // For chinise Ali-Arduino 1000 mills == 333 mills !!! Factor = 3.0 / TIME_ERROR
 
 #define CONVERT_PULSE 0.00812037037037 // Конвертация (Щелчков в Минуту) в МикроЗиверты/час
-#define SENSITIVITY 30
+#define SENSITIVITY 15
+#define CRITICAL_RAD_LEVEL 0.5 // в микро-Зивертах/час
 #define TIME_ERROR 3.0
 
 int service_pin = 13; // сервисный индикатор с платы
@@ -41,7 +42,7 @@ unsigned int select_power = 0; // 0 - микро, 1 - милли, 2 - без, / 
 unsigned int select_mode = 0; // 0 - радиометр, 1 - дозиметр
 
 unsigned long total_rad = 0;
-int diviser = 0; // делитель-усреднитель для дозиметрии
+unsigned long time_buzzer = 60000; // пищалка при прошествии 1 минуты
 
 
 LiquidCrystal_I2C lcd(0x27, 16, 2); // Устанавливаем дисплей
@@ -86,6 +87,7 @@ void loop()
   {
     ShowDosimeter();
   }
+  if(rad_value>=CRITICAL_RAD_LEVEL) AttentionBuzzer();  
 }
 
 void Show_Radiation()
@@ -187,8 +189,13 @@ void ShowDosimeter()
   // необходимо получить общую дозу за всё время работы прибора
   // режим один - показать total за время работы прибора
 
-  long timing = millis() * TIME_ERROR; // время сейчас в мс
+  unsigned long timing = millis() * TIME_ERROR; // время сейчас в мс
   time_previous_measure_dose = timing;
+  if(timing - time_buzzer < 60000) 
+  {
+    tone(soundPin, 7000, 50);
+    time_buzzer*=2;
+  }
   double rad_value = (total_rad * CONVERT_PULSE); // в микро-Зивертах/час
 
   double minutes = (double)timing / (60000.0 ); // время в мин
@@ -284,6 +291,7 @@ jumper_dosimeter:
 
 void Counter()
 {
+  tone(soundPin, 150, 7); 
   ++count;
   total_rad += count; // общий выровненный показатель радиации в час
 }
@@ -310,6 +318,16 @@ void SwitchMode()
 {
   if (select_mode == 1) select_mode = 0;
   else select_mode = 1;
+}
+
+void AttentionBuzzer()
+{
+  tone(soundPin, 7000, 70);
+  delay(65);
+  noTone(soundPin);
+  tone(soundPin, 9000, 140);
+  delay(130);
+  noTone(soundPin);
 }
 
 void BootAnimation() // useless

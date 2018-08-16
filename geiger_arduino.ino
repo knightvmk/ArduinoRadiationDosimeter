@@ -41,9 +41,14 @@ unsigned int select_power = 0; // 0 - микро, 1 - милли, 2 - без, / 
 unsigned int select_mode = 1; // 0 - радиометр, 1 - дозиметр
 
 unsigned long total_rad = 0;
+int diviser = 0; // делитель-усреднитель для дозиметрии
 
 
 LiquidCrystal_I2C lcd(0x27, 16, 2); // Устанавливаем дисплей
+
+void SwitchMeasure();
+void SwitchMode();
+void SwitchPower();
 
 
 void setup()
@@ -93,7 +98,7 @@ void Show_Radiation()
       checker = 0;
       common_counter = 0;
     }
-
+    
     common_counter += count; // общий выровненный показатель радиации в час
     total_rad += count; // для дозиметрии
     count = 0; // обнуляемся для нового периода
@@ -184,10 +189,13 @@ void ShowDosimeter()
 
   long timing = millis() * TIME_ERROR; // время сейчас в мс
   time_previous_measure_dose = timing;
-  double rad_value = total_rad * CONVERT_PULSE; // в микро-Зивертах/час
+  double rad_value = (total_rad * CONVERT_PULSE); // в микро-Зивертах/час
 
   double minutes = (double)timing / (60000.0 ); // время в мин
-  double current_dose = (rad_value) / (60000); // по правилу пропорций
+  //double current_dose = (rad_value) / (60000); // по правилу пропорций
+  //double current_dose = (rad_value * minutes) / (60000.0);
+  //double rad_min = rad_value / 60; // микро-Зиверт в мин
+  double current_dose = (rad_value / 60.0) ; // доза микро-Зиверт за количество прошедших минут
   
 jumper_dosimeter:
   switch (select_rad)

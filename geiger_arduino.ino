@@ -17,7 +17,7 @@
 // For chinise Ali-Arduino 1000 mills == 333 mills !!! Factor = 3.0 / TIME_ERROR
 
 #define CONVERT_PULSE 0.00812037037037 // Конвертация (Щелчков в Минуту) в МикроЗиверты/час
-#define SENSITIVITY 15
+#define SENSITIVITY 30
 #define TIME_ERROR 3.0
 
 int service_pin = 13; // сервисный индикатор с платы
@@ -27,7 +27,7 @@ int switch_mode = A2;
 int switch_power = A0;
 int geiger_input = 2; // вход с платы Счетчика Гейгера
 unsigned long count = 0; // счётчик
-unsigned long count_per_minute = 0;
+double count_per_minute = 0;
 unsigned long time_previous_measure = 0;
 unsigned long time_previous_measure_dose = 0;
 unsigned long time = 0;
@@ -38,7 +38,7 @@ unsigned long common_counter = 0; // для усренения измерени�
 
 unsigned int select_rad = 1; // 0 - Зиверты, 1 - Ренгены, 2 - Рад, 3 - Бэр, 4 - Кюри, 5 - CPM для дебуга
 unsigned int select_power = 0; // 0 - микро, 1 - милли, 2 - без, / в час
-unsigned int select_mode = 1; // 0 - радиометр, 1 - дозиметр
+unsigned int select_mode = 0; // 0 - радиометр, 1 - дозиметр
 
 unsigned long total_rad = 0;
 int diviser = 0; // делитель-усреднитель для дозиметрии
@@ -91,7 +91,7 @@ void loop()
 void Show_Radiation()
 {
   if (count == 0) return; // нефиг тут делать, если не было ни одного щелчка
-  if ((millis() * TIME_ERROR - time_previous_measure) > 2000)
+  if ((millis() * TIME_ERROR - time_previous_measure) > 5000)
   {
     if (checker > SENSITIVITY)
     {
@@ -105,7 +105,7 @@ void Show_Radiation()
 
     ++checker; // делитель усредненного значения радиации в час
 
-    count_per_minute = (common_counter / checker) * 30; // у нас есть показатель/час, получаем показатель/час для 2 секунд периода измерений
+    count_per_minute = ((double)common_counter / (double)checker) * 12.0; // у нас есть показатель/час, получаем показатель/час для 2 секунд периода измерений
     rad_value = count_per_minute * CONVERT_PULSE; // по-умолчанию в микро-Зивертах
     time_previous_measure = millis() * TIME_ERROR;
 
@@ -122,7 +122,7 @@ jumper_radiometer:
         switch (select_power)
         {
           case 0:
-
+          
             lcd.print(rad_value, 4);
             lcd.setCursor(11, 1);
             lcd.print("uSv/h");

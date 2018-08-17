@@ -24,7 +24,7 @@
 int service_pin = 13; // сервисный индикатор с платы
 int soundPin = 11;
 int switch_measure = A1;
-int switch_mode = A2;
+int switch_mode = 10;
 int switch_power = A0;
 int geiger_input = 2; // вход с платы Счетчика Гейгера
 unsigned long count = 0; // счётчик
@@ -36,27 +36,34 @@ double rad_value = 0.0;
 bool is_initialized = false;
 unsigned int checker = 0; // для усренения измерений
 unsigned long common_counter = 0; // для усренения измерений
+double current_dose = 0; // счётчик накопленной радиации за время работы прибора
 
 unsigned int select_rad = 1; // 0 - Зиверты, 1 - Ренгены, 2 - Рад, 3 - Бэр, 4 - Кюри, 5 - CPM для дебуга
 unsigned int select_power = 0; // 0 - микро, 1 - милли, 2 - без, / в час
-unsigned int select_mode = 0; // 0 - радиометр, 1 - дозиметр
+unsigned int select_mode = 1; // 0 - радиометр, 1 - дозиметр
 
 unsigned long total_rad = 0;
 unsigned long time_buzzer = 60000; // пищалка при прошествии 1 минуты
 
 
+
 LiquidCrystal_I2C lcd(0x27, 16, 2); // Устанавливаем дисплей
 
-void SwitchMeasure();
-void SwitchMode();
-void SwitchPower();
+void ShowRadiation(); // режим покателя радиации в час
+void ShowDosimeter(); // режим показателя накопленной радиации за время работы прибора
+void Counter(); // счётчик в режиме работы прерываний
+void SwitchMeasure(); // изменение меры измерения
+void SwitchMode(); // изменение режима работы радиометр-дозиметр
+void SwitchPower(); // изменение единицы меры измерения (микро-мили-"без приставки")
+void AttentionBuzzer(); // функция сигнализации при достижении порога радиации в 0.5 мкЗв/ч или 50 мкР/ч
+void RefreshPrintData(); // принудительное обновление данных на экране при изменении режима работы прибора
 
 
 void setup()
 {
   pinMode(soundPin, OUTPUT); //объявляем пин 3 как выход.
   pinMode(switch_measure, INPUT_PULLUP);
-  pinMode(switch_mode, INPUT_PULLUP); 
+  pinMode(switch_mode, INPUT_PULLUP);
   pinMode(switch_power, INPUT_PULLUP);
   pinMode(LED_BUILTIN, OUTPUT);
   interrupts();
@@ -76,21 +83,17 @@ void setup()
 void loop()
 {
   // обработка нажатий кнопок
-  if (analogRead(switch_mode) < 1000) SwitchMode();
-  if (analogRead(switch_measure) < 1000) SwitchMeasure();
-  if (analogRead(switch_power) < 1000) SwitchPower();
-  
+  if (digitalRead(switch_mode) == LOW) SwitchMode();
+  if (analogRead(switch_measure) < 200) SwitchMeasure();
+  if (analogRead(switch_power) < 200) SwitchPower();
+
   // работа режимов
-  if (select_mode == 0)
-    Show_Radiation();
-  else
-  {
-    ShowDosimeter();
-  }
-  if(rad_value>=CRITICAL_RAD_LEVEL) AttentionBuzzer();  
+  if (select_mode == 0) ShowRadiation();
+  else  ShowDosimeter();
+  if (rad_value >= CRITICAL_RAD_LEVEL) AttentionBuzzer();
 }
 
-void Show_Radiation()
+void ShowRadiation()
 {
   if (count == 0) return; // нефиг тут делать, если не было ни одного щелчка
   if ((millis() * TIME_ERROR - time_previous_measure) > 5000)
@@ -100,7 +103,7 @@ void Show_Radiation()
       checker = 0;
       common_counter = 0;
     }
-    
+
     common_counter += count; // общий выровненный показатель радиации в час
     total_rad += count; // для дозиметрии
     count = 0; // обнуляемся для нового периода
@@ -111,34 +114,26 @@ void Show_Radiation()
     rad_value = count_per_minute * CONVERT_PULSE; // по-умолчанию в микро-Зивертах
     time_previous_measure = millis() * TIME_ERROR;
 
-jumper_radiometer:
+
     switch (select_rad)
     {
       case 0: // начало Зиверт
 
         lcd.clear();
-        lcd.setCursor(0, 0);
-        //lcd.print("Radiometer");
-
         lcd.setCursor(0, 1);
         switch (select_power)
         {
           case 0:
-          
             lcd.print(rad_value, 4);
             lcd.setCursor(11, 1);
             lcd.print("uSv/h");
             break;
-
           case 1:
-
             lcd.print(rad_value * 0.001, 5);
             lcd.setCursor(11, 1);
             lcd.print("mSv/h");
             break;
-
           case 2:
-
             lcd.print(rad_value * 0.000001, 7);
             lcd.setCursor(12, 1);
             lcd.print("Sv/h");
@@ -149,28 +144,20 @@ jumper_radiometer:
       case 1: // начало Рентген
 
         lcd.clear();
-        lcd.setCursor(0, 0);
-        //lcd.print("Radiometer");
-
         lcd.setCursor(0, 1);
         switch (select_power)
         {
           case 0:
-
             lcd.print(rad_value * 100, 4);
             lcd.setCursor(11, 1);
             lcd.print("uRn/h");
             break;
-
           case 1:
-
             lcd.print(rad_value * 0.1, 4);
             lcd.setCursor(11, 1);
             lcd.print("mRn/h");
             break;
-
           case 2:
-
             lcd.print(rad_value * 0.0001, 5);
             lcd.setCursor(12, 1);
             lcd.print("Rn/h");
@@ -178,68 +165,57 @@ jumper_radiometer:
         }
         break;
         // конец Рентген
-
     }
   }
 }
 
 void ShowDosimeter()
 {
-  if(millis()*TIME_ERROR - time_previous_measure_dose < 2000) return;
+  if (millis()*TIME_ERROR - time_previous_measure_dose < 2000) return;
   // необходимо получить общую дозу за всё время работы прибора
   // режим один - показать total за время работы прибора
 
   unsigned long timing = millis() * TIME_ERROR; // время сейчас в мс
   time_previous_measure_dose = timing;
-  if(timing - time_buzzer < 60000) 
+  if (timing - time_buzzer <= 60000)
   {
     tone(soundPin, 7000, 50);
-    time_buzzer*=2;
+    time_buzzer *= 2;
   }
   double rad_value = (total_rad * CONVERT_PULSE); // в микро-Зивертах/час
 
   double minutes = (double)timing / (60000.0 ); // время в мин
-  //double current_dose = (rad_value) / (60000); // по правилу пропорций
-  //double current_dose = (rad_value * minutes) / (60000.0);
-  //double rad_min = rad_value / 60; // микро-Зиверт в мин
-  double current_dose = (rad_value / 60.0) ; // доза микро-Зиверт за количество прошедших минут
-  
-jumper_dosimeter:
+
+  current_dose = (rad_value / 60.0) ; // доза микро-Зиверт за количество прошедших минут
+
+
   switch (select_rad)
   {
     case 0: // Зиверты
       switch (select_power)
       {
         case 0:
-
           lcd.clear();
           lcd.setCursor(0, 0);
           lcd.print(current_dose, 4);
           lcd.setCursor(8, 0);
           lcd.print("uSv");
-
           break;
-
         case 1:
           lcd.clear();
           lcd.setCursor(0, 0);
           lcd.print(current_dose * 0.001, 4);
           lcd.setCursor(8, 0);
           lcd.print("mSv");
-
           break;
-
         case 2:
           lcd.clear();
           lcd.setCursor(0, 0);
           lcd.print(current_dose * 0.000001, 5);
           lcd.setCursor(9, 0);
           lcd.print("Sv");
-
           break;
-
       }
-
       break;
 
     case 1: // Рентгены
@@ -247,41 +223,30 @@ jumper_dosimeter:
       switch (select_power)
       {
         case 0:
-
           lcd.clear();
           lcd.setCursor(0, 0);
           lcd.print(current_dose * 100, 4);
           lcd.setCursor(8, 0);
           lcd.print("uRn");
-
           break;
-
         case 1:
           lcd.clear();
           lcd.setCursor(0, 0);
           lcd.print(current_dose * 0.1, 4);
           lcd.setCursor(8, 0);
           lcd.print("mRn");
-
           break;
-
         case 2:
           lcd.clear();
           lcd.setCursor(0, 0);
           lcd.print(current_dose * 0.0001, 5);
           lcd.setCursor(9, 0);
           lcd.print("Rn");
-
           break;
-
       }
-
       break;
-
   }
 
-  //lcd.setCursor(0, 1);
-  //lcd.print("Time = ");
   lcd.setCursor(0, 1);
   lcd.print(minutes, 2);
   lcd.setCursor(8, 1);
@@ -291,33 +256,31 @@ jumper_dosimeter:
 
 void Counter()
 {
-  tone(soundPin, 150, 7); 
+  tone(soundPin, 150, 7);
   ++count;
-  total_rad += count; // общий выровненный показатель радиации в час
+  ++total_rad;
+  //total_rad += count; // общий выровненный показатель радиации в час
 }
 
 void SwitchMeasure()
 {
   if (select_rad == 1) select_rad = 0;
   else select_rad = 1;
-
-  //if(select_mode==0) goto jumper_radiometer;
-  //else goto jumper_dosimeter;
+  RefreshPrintData();
 }
 
 void SwitchPower()
 {
   if (select_power == 2) select_power = 0;
   else ++select_power;
-
-  //if(select_mode==0) goto jumper_radiometer;
-  //else goto jumper_dosimeter;
+  RefreshPrintData();
 }
 
 void SwitchMode()
 {
   if (select_mode == 1) select_mode = 0;
   else select_mode = 1;
+  RefreshPrintData();
 }
 
 void AttentionBuzzer()
@@ -328,6 +291,110 @@ void AttentionBuzzer()
   tone(soundPin, 9000, 140);
   delay(130);
   noTone(soundPin);
+}
+
+void RefreshPrintData() // экстренное принудительное обновление данных на дисплее
+{
+  lcd.clear();
+  if (select_mode == 0)
+  {
+    lcd.setCursor(0, 1);
+    if (select_rad == 0)
+    {
+      switch (select_power)
+      {
+        case 0:
+
+          lcd.print(rad_value, 4);
+          lcd.setCursor(11, 1);
+          lcd.print("uSv/h");
+          break;
+        case 1:
+          lcd.print(rad_value * 0.001, 5);
+          lcd.setCursor(11, 1);
+          lcd.print("mSv/h");
+          break;
+        case 2:
+          lcd.print(rad_value * 0.000001, 7);
+          lcd.setCursor(12, 1);
+          lcd.print("Sv/h");
+          break;
+      }
+    }
+    else
+    {
+      switch (select_power)
+      {
+        case 0:
+          lcd.print(rad_value * 100, 4);
+          lcd.setCursor(11, 1);
+          lcd.print("uRn/h");
+          break;
+        case 1:
+          lcd.print(rad_value * 0.1, 4);
+          lcd.setCursor(11, 1);
+          lcd.print("mRn/h");
+          break;
+        case 2:
+          lcd.print(rad_value * 0.0001, 5);
+          lcd.setCursor(12, 1);
+          lcd.print("Rn/h");
+          break;
+      }
+    }
+  }
+  else
+  {
+    switch (select_rad)
+    {
+      case 0: // Зиверты
+        switch (select_power)
+        {
+          case 0:
+            lcd.setCursor(0, 0);
+            lcd.print(current_dose, 4);
+            lcd.setCursor(8, 0);
+            lcd.print("uSv");
+            break;
+          case 1:
+            lcd.setCursor(0, 0);
+            lcd.print(current_dose * 0.001, 4);
+            lcd.setCursor(8, 0);
+            lcd.print("mSv");
+            break;
+          case 2:
+            lcd.setCursor(0, 0);
+            lcd.print(current_dose * 0.000001, 5);
+            lcd.setCursor(9, 0);
+            lcd.print("Sv");
+            break;
+        }
+        break;
+      case 1: // Рентгены
+        switch (select_power)
+        {
+          case 0:
+            lcd.setCursor(0, 0);
+            lcd.print(current_dose * 100, 4);
+            lcd.setCursor(8, 0);
+            lcd.print("uRn");
+            break;
+          case 1:
+            lcd.setCursor(0, 0);
+            lcd.print(current_dose * 0.1, 4);
+            lcd.setCursor(8, 0);
+            lcd.print("mRn");
+            break;
+          case 2:
+            lcd.setCursor(0, 0);
+            lcd.print(current_dose * 0.0001, 5);
+            lcd.setCursor(9, 0);
+            lcd.print("Rn");
+            break;
+        }
+        break;
+    }
+  }
 }
 
 void BootAnimation() // useless

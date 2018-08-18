@@ -23,9 +23,10 @@
 
 int service_pin = 13; // сервисный индикатор с платы
 int soundPin = 11;
-int switch_measure = A1;
-int switch_mode = 10;
-int switch_power = A0;
+int switch_measure = 10;
+int switch_mode = 11;
+int switch_power = 12;
+int switch_precision = 12;
 int geiger_input = 2; // вход с платы Счетчика Гейгера
 unsigned long count = 0; // счётчик
 double count_per_minute = 0;
@@ -40,10 +41,13 @@ double current_dose = 0; // счётчик накопленной радиаци
 
 unsigned int select_rad = 1; // 0 - Зиверты, 1 - Ренгены, 2 - Рад, 3 - Бэр, 4 - Кюри, 5 - CPM для дебуга
 unsigned int select_power = 0; // 0 - микро, 1 - милли, 2 - без, / в час
-unsigned int select_mode = 1; // 0 - радиометр, 1 - дозиметр
+unsigned int select_mode = 0; // 0 - радиометр, 1 - дозиметр
+//unsigned int select_precision = 0; // 0 - за 5 сек, 1 - за 10 сек
 
 unsigned long total_rad = 0;
 unsigned long time_buzzer = 60000; // пищалка при прошествии 1 минуты
+
+unsigned int TIME_FOR_PAUSE = 5000; // default.
 
 
 
@@ -55,6 +59,7 @@ void Counter(); // счётчик в режиме работы прерыван�
 void SwitchMeasure(); // изменение меры измерения
 void SwitchMode(); // изменение режима работы радиометр-дозиметр
 void SwitchPower(); // изменение единицы меры измерения (микро-мили-"без приставки")
+void SwitchPricision(); // сменить время измерения радиометра с 5 на 10 сек.
 void AttentionBuzzer(); // функция сигнализации при достижении порога радиации в 0.5 мкЗв/ч или 50 мкР/ч
 void RefreshPrintData(); // принудительное обновление данных на экране при изменении режима работы прибора
 
@@ -84,8 +89,9 @@ void loop()
 {
   // обработка нажатий кнопок
   if (digitalRead(switch_mode) == LOW) SwitchMode();
-  if (analogRead(switch_measure) < 200) SwitchMeasure();
-  if (analogRead(switch_power) < 200) SwitchPower();
+  if (digitalRead(switch_measure) == LOW) SwitchMeasure();
+  if (digitalRead(switch_power) == LOW) SwitchPower();
+  if (digitalRead(switch_precision) == LOW) SwitchPricision();
 
   // работа режимов
   if (select_mode == 0) ShowRadiation();
@@ -96,7 +102,7 @@ void loop()
 void ShowRadiation()
 {
   if (count == 0) return; // нефиг тут делать, если не было ни одного щелчка
-  if ((millis() * TIME_ERROR - time_previous_measure) > 5000)
+  if ((millis() * TIME_ERROR - time_previous_measure) > TIME_FOR_PAUSE)
   {
     if (checker > SENSITIVITY)
     {
@@ -109,8 +115,8 @@ void ShowRadiation()
     count = 0; // обнуляемся для нового периода
 
     ++checker; // делитель усредненного значения радиации в час
-
-    count_per_minute = ((double)common_counter / (double)checker) * 12.0; // у нас есть показатель/час, получаем показатель/час для 2 секунд периода измерений
+    if (TIME_FOR_PAUSE == 5000) count_per_minute = ((double)common_counter / (double)checker) * 12.0; // у нас есть показатель/час, получаем показатель/час для 2 секунд периода измерений
+    else count_per_minute = ((double)common_counter / (double)checker) * 6.0;
     rad_value = count_per_minute * CONVERT_PULSE; // по-умолчанию в микро-Зивертах
     time_previous_measure = millis() * TIME_ERROR;
 
@@ -281,6 +287,14 @@ void SwitchMode()
   if (select_mode == 1) select_mode = 0;
   else select_mode = 1;
   RefreshPrintData();
+}
+
+void SwitchPricision()
+{
+  if (TIME_FOR_PAUSE == 5000) TIME_FOR_PAUSE = 10000;
+  else TIME_FOR_PAUSE = 5000;
+  if (select_mode == 0) lcd.clear();
+  count = 0;
 }
 
 void AttentionBuzzer()

@@ -27,8 +27,8 @@ Update screen data at 5 secs
 2. **A1** - pin for button change measure,
 3. **A2** - pin for button change mode (Radiomenter / Dosimeter),
 
-4. **A4** - pins for i2c display **LCD1602 (LiquidCrystal_I2C)**,
-5. **A5** - ==//==.
+4. **A4** - **SDA** - pins for i2c display **LCD1602 (LiquidCrystal_I2C)**,
+5. **A5** - **SCL** - ==//==.
 
 **Geiger plate**
 1. **GND**

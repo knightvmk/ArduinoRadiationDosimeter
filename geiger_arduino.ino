@@ -17,17 +17,17 @@
 // For chinise Ali-Arduino 1000 mills == 333 mills !!! Factor = 3.0 / TIME_ERROR
 
 #define CONVERT_PULSE 0.00812037037037 // Конвертация (Щелчков в Минуту) в МикроЗиверты/час
-#define SENSITIVITY 15
+#define SENSITIVITY 8
 #define CRITICAL_RAD_LEVEL 0.5 // в микро-Зивертах/час
-#define TIME_ERROR 3.0
+#define TIME_ERROR 1
 
-int service_pin = 13; // сервисный индикатор с платы
-int soundPin = 11;
-int switch_measure = 10;
-int switch_mode = 11;
+//int service_pin = 13; // сервисный индикатор с платы
+int soundPin = 8;
+int switch_measure = 7;
+int switch_mode = 4;
 int switch_power = 12;
-int switch_precision = 12;
-int geiger_input = 2; // вход с платы Счетчика Гейгера
+int switch_precision = 13;
+int geiger_input = 3; // вход с платы Счетчика Гейгера
 unsigned long count = 0; // счётчик
 double count_per_minute = 0;
 unsigned long time_previous_measure = 0;
@@ -51,6 +51,7 @@ unsigned int TIME_FOR_PAUSE = 5000; // default.
 
 
 
+
 LiquidCrystal_I2C lcd(0x27, 16, 2); // Устанавливаем дисплей
 
 void ShowRadiation(); // режим покателя радиации в час
@@ -67,11 +68,12 @@ void RefreshPrintData(); // принудительное обновление д
 void setup()
 {
   pinMode(soundPin, OUTPUT); //объявляем пин 3 как выход.
-  pinMode(switch_measure, INPUT_PULLUP);
+  pinMode(switch_measure, INPUT_PULLUP); //INPUT_PULLUP
   pinMode(switch_mode, INPUT_PULLUP);
   pinMode(switch_power, INPUT_PULLUP);
-  pinMode(LED_BUILTIN, OUTPUT);
-  interrupts();
+  pinMode(switch_precision, INPUT_PULLUP);
+  //pinMode(LED_BUILTIN, OUTPUT);
+  //interrupts();
   attachInterrupt(digitalPinToInterrupt(geiger_input), Counter, FALLING); // Прерывания для считывания пульсов трубки Гейгера-Мюллера
 
   //Serial.begin(9600); // Вывод в ПК по COM интерфейсу // Debug
@@ -88,10 +90,23 @@ void setup()
 void loop()
 {
   // обработка нажатий кнопок
-  if (digitalRead(switch_mode) == LOW) SwitchMode();
-  if (digitalRead(switch_measure) == LOW) SwitchMeasure();
-  if (digitalRead(switch_power) == LOW) SwitchPower();
-  if (digitalRead(switch_precision) == LOW) SwitchPricision();
+  if (digitalRead(switch_mode) == LOW) {
+    delay(150);
+    SwitchMode();
+  }
+  if (digitalRead(switch_measure) == LOW) 
+  {
+    delay(150);
+    SwitchMeasure();
+  }
+  if (digitalRead(switch_power) == LOW) 
+  {
+    delay(150);
+    SwitchPower();
+  }
+  //if (digitalRead(switch_precision) == HIGH) SwitchPricision();
+  if (digitalRead(switch_precision) == LOW) TIME_FOR_PAUSE = 5000;
+  else TIME_FOR_PAUSE = 10000;
 
   // работа режимов
   if (select_mode == 0) ShowRadiation();
@@ -115,8 +130,11 @@ void ShowRadiation()
     count = 0; // обнуляемся для нового периода
 
     ++checker; // делитель усредненного значения радиации в час
-    if (TIME_FOR_PAUSE == 5000) count_per_minute = ((double)common_counter / (double)checker) * 12.0; // у нас есть показатель/час, получаем показатель/час для 2 секунд периода измерений
+    //if (TIME_FOR_PAUSE == 5000) count_per_minute = ((double)common_counter / (double)checker) * 12.0; // у нас есть показатель/час, получаем показатель/час для 2 секунд периода измерений
+    //else count_per_minute = ((double)common_counter / (double)checker) * 6.0;
+    if (digitalRead(switch_precision) == LOW) count_per_minute = ((double)common_counter / (double)checker) * 12.0; // у нас есть показатель/час, получаем показатель/час для 5 секунд периода измерений
     else count_per_minute = ((double)common_counter / (double)checker) * 6.0;
+    
     rad_value = count_per_minute * CONVERT_PULSE; // по-умолчанию в микро-Зивертах
     time_previous_measure = millis() * TIME_ERROR;
 
@@ -262,7 +280,7 @@ void ShowDosimeter()
 
 void Counter()
 {
-  tone(soundPin, 150, 7);
+  tone(soundPin, 150, 4);
   ++count;
   ++total_rad;
   //total_rad += count; // общий выровненный показатель радиации в час
@@ -299,11 +317,11 @@ void SwitchPricision()
 
 void AttentionBuzzer()
 {
-  tone(soundPin, 7000, 70);
-  delay(65);
+  tone(soundPin, 7000, 140);
+  delay(135);
   noTone(soundPin);
-  tone(soundPin, 9000, 140);
-  delay(130);
+  tone(soundPin, 9000, 200);
+  delay(195);
   noTone(soundPin);
 }
 

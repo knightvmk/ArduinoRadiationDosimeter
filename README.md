@@ -11,7 +11,7 @@ Repository for Geiger counter and Radiation dosimeter for Arduino plate.
 + Sievert per _"millis()"_,
 + + Alarm every minute.
 
-Update screen data at 5 secs
+Update screen data at 5 secs or 10 secs in "Precision  mode"
 
 ## FAQ
 
@@ -19,14 +19,14 @@ Update screen data at 5 secs
 
 **Arduino:**
 * Digital pins:
-1. **2** - Input for interrupts from Geiger plate,
-2. **11** - Sound buzzer pin.
+1. **3** - Input for interrupts from Geiger plate,
+2. **8** - Sound buzzer pin,
+3. **12** - pin for button change power of measure,
+4. **7** - pin for button change measure,
+5. **4** - pin for button change mode (Radiomenter / Dosimeter).
+7. **13** - pin for switch precision of measure (5 sec / 10 sec update screen data)
 
 * Analog pins:
-1. **A0** - pin for button change power of measure,
-2. **A1** - pin for button change measure,
-3. **A2** - pin for button change mode (Radiomenter / Dosimeter),
-
 4. **A4** - **SDA** - pins for i2c display **LCD1602 (LiquidCrystal_I2C)**,
 5. **A5** - **SCL** - ==//==.
 
@@ -39,6 +39,6 @@ Update screen data at 5 secs
 
 
 ---
-Last update the Readme at 16.08.2018
+Last update the Readme at 25.08.2018
 
 _tags: Arduino, Uno, Nano, C++, Geiger, Radiation, Counter, Dosimeter, CAJOE, RadiationD, v1.1, RadiationD-v1.1_

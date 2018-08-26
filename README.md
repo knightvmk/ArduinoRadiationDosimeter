@@ -11,7 +11,7 @@ Repository for Geiger counter and Radiation dosimeter for Arduino plate.
 + Sievert per _"millis()"_,
 + + Alarm every minute.
 
-Update screen data at 5 secs or 10 secs in "Precision  mode"
+Update screen data at 5 secs or 15 secs in "Precision  mode"
 
 ## FAQ
 
@@ -39,6 +39,6 @@ Update screen data at 5 secs or 10 secs in "Precision  mode"
 
 
 ---
-Last update the Readme at 25.08.2018
+Last update the Readme at 26.08.2018
 
 _tags: Arduino, Uno, Nano, C++, Geiger, Radiation, Counter, Dosimeter, CAJOE, RadiationD, v1.1, RadiationD-v1.1_

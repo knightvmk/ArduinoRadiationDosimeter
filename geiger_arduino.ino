@@ -17,9 +17,9 @@
 // For chinise Ali-Arduino 1000 mills == 333 mills !!! Factor = 3.0 / TIME_ERROR
 
 #define CONVERT_PULSE 0.00812037037037 // Конвертация (Щелчков в Минуту) в МикроЗиверты/час
-#define SENSITIVITY 8
+#define SENSITIVITY 5
 #define CRITICAL_RAD_LEVEL 0.5 // в микро-Зивертах/час
-#define TIME_ERROR 1
+#define TIME_ERROR 1.0
 
 //int service_pin = 13; // сервисный индикатор с платы
 int soundPin = 8;
@@ -91,22 +91,22 @@ void loop()
 {
   // обработка нажатий кнопок
   if (digitalRead(switch_mode) == LOW) {
-    delay(150);
+    delay(160);
     SwitchMode();
   }
   if (digitalRead(switch_measure) == LOW) 
   {
-    delay(150);
+    delay(160);
     SwitchMeasure();
   }
   if (digitalRead(switch_power) == LOW) 
   {
-    delay(150);
+    delay(160);
     SwitchPower();
   }
   //if (digitalRead(switch_precision) == HIGH) SwitchPricision();
   if (digitalRead(switch_precision) == LOW) TIME_FOR_PAUSE = 5000;
-  else TIME_FOR_PAUSE = 10000;
+  else  TIME_FOR_PAUSE = 15000;
 
   // работа режимов
   if (select_mode == 0) ShowRadiation();
@@ -132,8 +132,14 @@ void ShowRadiation()
     ++checker; // делитель усредненного значения радиации в час
     //if (TIME_FOR_PAUSE == 5000) count_per_minute = ((double)common_counter / (double)checker) * 12.0; // у нас есть показатель/час, получаем показатель/час для 2 секунд периода измерений
     //else count_per_minute = ((double)common_counter / (double)checker) * 6.0;
-    if (digitalRead(switch_precision) == LOW) count_per_minute = ((double)common_counter / (double)checker) * 12.0; // у нас есть показатель/час, получаем показатель/час для 5 секунд периода измерений
-    else count_per_minute = ((double)common_counter / (double)checker) * 6.0;
+    if (digitalRead(switch_precision) == LOW) 
+    {
+      count_per_minute = (((double)common_counter / (double)checker) * 12.0) - 0.2*5.0 ; // у нас есть показатель/час, получаем показатель/час для 5 секунд периода измерений
+    }
+    else 
+    {
+      count_per_minute = (((double)common_counter / (double)checker) * 4.0) - 0.2*15.0;
+    }
     
     rad_value = count_per_minute * CONVERT_PULSE; // по-умолчанию в микро-Зивертах
     time_previous_measure = millis() * TIME_ERROR;
@@ -206,7 +212,7 @@ void ShowDosimeter()
     tone(soundPin, 7000, 50);
     time_buzzer *= 2;
   }
-  double rad_value = (total_rad * CONVERT_PULSE); // в микро-Зивертах/час
+  double rad_value = ((total_rad - 0.2*2) * CONVERT_PULSE); // в микро-Зивертах/час
 
   double minutes = (double)timing / (60000.0 ); // время в мин
 

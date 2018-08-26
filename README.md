@@ -24,7 +24,7 @@ Update screen data at 5 secs or 15 secs in "Precision  mode"
 3. **12** - pin for button change power of measure,
 4. **7** - pin for button change measure,
 5. **4** - pin for button change mode (Radiomenter / Dosimeter).
-7. **13** - pin for switch precision of measure (5 sec / 10 sec update screen data)
+7. **13** - pin for switch precision of measure (5 sec / 15 sec update screen data)
 
 * Analog pins:
 4. **A4** - **SDA** - pins for i2c display **LCD1602 (LiquidCrystal_I2C)**,

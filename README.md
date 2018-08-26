@@ -41,4 +41,4 @@ Update screen data at 5 secs or 15 secs in "Precision  mode"
 ---
 Last update the Readme at 26.08.2018
 
-_tags: Arduino, Uno, Nano Pro Mini, Pro, Mini, C++, Geiger, Radiation, Counter, Dosimeter, CAJOE, RadiationD, v1.1, RadiationD-v1.1_
+_tags: Arduino, Uno, Nano Pro Mini, Pro, Mini, ATmega, C++, Geiger, Radiation, Counter, Dosimeter, CAJOE, RadiationD, v1.1, RadiationD-v1.1_
